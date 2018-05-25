@@ -1,5 +1,5 @@
-# Predicting Human Trust in Robot Capabilities across Tasks #
-This is the supplementary material for the paper *Predicting Human Trust in Robot Capabilities across Tasks*, Robotics Science and Systems (RSS) 2018. 
+# The Transfer of Human Trust in Robot Capabilities across Tasks #
+This is the supplementary material for the paper *The Transfer of Human Trust in Robot Capabilities across Tasks*, Robotics Science and Systems (RSS) 2018. 
 
 ## Requirements ##
 To run the code, you will need:
