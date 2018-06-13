@@ -229,9 +229,9 @@ class GPTrustTransfer(torch.nn.Module):
 
         self.inpsize = inpsize
 
-        # constants        
-        self.one = Variable(dtype([1.0]), requires_grad=False)
-        self.zero = Variable(dtype([0.0]), requires_grad=False)
+        # constants     
+        self.one = Variable(dtype(np.eye(1)), requires_grad=False)
+        self.zero = Variable(dtype(np.eye(1)*0), requires_grad=False)
 
         self.useAlimit = False
         self.limiter = torch.nn.Tanh()
@@ -329,7 +329,7 @@ class GPTrustTransfer(torch.nn.Module):
         # phi = torch.clamp(phi, -10, 0.01)
         k = torch.dot(d, 1.0 / torch.exp(phi))
         # print(k)
-        k = s * s * torch.exp(-torch.dot(k, k))
+        k = s * s * torch.exp(-torch.dot(k.view(-1), k.view(-1)))
         return k
 
     def sekernel(self, x1, x2, kparams):
@@ -341,7 +341,7 @@ class GPTrustTransfer(torch.nn.Module):
         # phi = torch.clamp(phi, -10, 0.01)
         d = torch.div((x1 - x2), torch.exp(phi))
         # print(d)
-        k = s * s * torch.exp(-torch.dot(d, d))
+        k = s * s * torch.exp(-torch.dot(d.view(-1), d.view(-1)))
         return k
 
     def projkernel(self, x1, x2, kparams):
@@ -353,7 +353,7 @@ class GPTrustTransfer(torch.nn.Module):
         # print(d)
         k = torch.matmul(d, torch.t(A))
         # print(k)
-        k = s * s * torch.exp(-torch.dot(k, k))
+        k = s * s * torch.exp(-torch.dot(k.view(-1), k.view(-1)))
         return k
 
     def getKernelMatrix(self, X, kfunc, kparams, X2=None):
@@ -403,7 +403,7 @@ class GPTrustTransfer(torch.nn.Module):
             # subsequent updates (projected process approximation)
             nbvs = bvs.shape[0]
             k = self.getKernelMatrix(bvs, kfunc, kparams, X2=x)
-            m = torch.dot(k, alpha) - mx
+            m = torch.dot(k.view(-1), alpha.view(-1)) - mx
             Ck = torch.matmul(C, k)
             if self.verbose:
                 print('Ck', Ck)
@@ -442,8 +442,8 @@ class GPTrustTransfer(torch.nn.Module):
                 return (alpha, C, bvs)
 
             # grow and update alpha and C
-            s = torch.cat((Ck, self.one))
-            alpha = torch.cat((alpha, self.zero))
+            s = torch.cat((Ck.view(-1), self.one.view(-1))).view(1,-1)
+            alpha = torch.cat((alpha.view(-1), self.zero.view(-1)))
 
             nbvs += 1
             bvs = torch.cat((bvs, x))
@@ -457,7 +457,7 @@ class GPTrustTransfer(torch.nn.Module):
 
             C = torch.cat((C, zerocol), 1)
             C = torch.cat((C, zerorow))
-            C = C + r * (s * torch.t(s))
+            C = C + r * torch.matmul(s.t() , s)
 
             alpha = alpha + s * q
 
@@ -476,7 +476,7 @@ class GPTrustTransfer(torch.nn.Module):
             s2 = kstar + noise
         else:
             k = self.getKernelMatrix(bvs, kfunc, kparams, X2=x)
-            m = torch.dot(k, alpha) - mx
+            m = torch.dot(k.view(-1), alpha.view(-1)) - mx
             Ck = torch.matmul(C, k)
             s2 = kstar + torch.matmul(torch.t(k), Ck) + noise
 
